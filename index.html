@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vision Trade Bot</title>
+  <!-- particles.js para fundo animado -->
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+  <!-- Interact.js para arrastar os nós de forma fluida -->
+  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+  <!-- Font Awesome para ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
+  <!-- Google Font para o título -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+  <!-- DOMPurify para higienizar conteúdo dinâmico -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
+  <style>
+    /* Estilos básicos da página e dos nós – copie aqui todo o conteúdo CSS que você usa */
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    #particles-js {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      top: 0;
+      left: 0;
+      display: none;
+    }
+    #titulo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 48px;
+      color: #00ffff;
+      text-align: center;
+      margin: 20px 0;
+      text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #00ffff;
+      z-index: 10;
+      position: relative;
+    }
+    #subtitulo {
+      text-align: center;
+      margin: 5px 0 20px;
+      font-size: 18px;
+      z-index: 10;
+      position: relative;
+    }
+    #nodes-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      height: 100%;
+    }
+    .node {
+      width: 100px;
+      height: 100px;
+      background: linear-gradient(135deg, #444, #222);
+      border: 2px solid #555;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.3s, background 0.3s;
+      position: absolute;
+      font-size: 10px;
+      padding: 5px;
+      user-select: none;
+      color: #fff;
+    }
+    .node:hover { transform: scale(1.05); }
+    .node.configurable:hover { box-shadow: 0 0 15px 5px #00BFFF !important; }
+    .node .node-icon { font-size: 32px; margin-bottom: 4px; color: #fff; transition: color 0.3s; }
+    .node::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .node::before {
+      content: "";
+      position: absolute;
+      top: -5px; left: -5px;
+      width: calc(100% + 10px);
+      height: calc(100% + 10px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(255,255,255,0.1);
+      pointer-events: none;
+      animation: rotate 10s linear infinite;
+    }
+    @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes pulse { 0% { box-shadow: 0 0 15px 5px #00ffff; } 50% { box-shadow: 0 0 25px 10px #00ffff; } 100% { box-shadow: 0 0 15px 5px #00ffff; } }
+    .node.principal.active { animation: pulse-active 1s infinite; }
+    @keyframes pulse-active { 0% { box-shadow: 0 0 25px 10px #00ffff; } 50% { box-shadow: 0 0 40px 20px #00ffff; } 100% { box-shadow: 0 0 25px 10px #00ffff; } }
+    /* Demais regras de CSS… */
+    /* (Inclua aqui todo o CSS original que você já tinha.) */
+  </style>
+</head>
+<body>
+  <!-- Conteúdo principal -->
+  <div id="app">
+    <!-- Fundo animado -->
+    <div id="particles-js"></div>
+    
+    <!-- Título e Subtítulo -->
+    <h1 id="titulo">Vision Trade Bot</h1>
+    <div id="subtitulo">Rede de Nós - Trading Bot</div>
+    
+    <!-- SVG para conexões -->
+    <svg id="connections-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L0,6 L9,3 z" fill="white" />
+        </marker>
+      </defs>
+    </svg>
+    
+    <!-- Container dos nós -->
+    <div id="nodes-container"></div>
+    
+    <!-- Botões inferiores -->
+    <div id="bottom-buttons">
+      <button id="btn-logs">Visualizar Logs</button>
+      <button id="btn-tour">Tour Interface</button>
+      <button id="btn-login">Login</button>
+      <button id="btn-cadastro">Cadastro</button>
+      <button id="btn-salvar">Salvar Visual</button>
+      <button id="btn-relatorios">Gerar Relatórios</button>
+      <button id="btn-create-bot">Criar Novo Bot</button>
+      <button id="btn-feedback">Feedback</button>
+      <button id="btn-cadastrar-corretora">Cadastrar Corretora</button>
+      <button id="btn-mining-info">Mineração</button>
+      <button id="btn-create-defi-bot">Criar Bot DeFi</button>
+      <button id="btn-bot-aut">Bot Aut</button>
+    </div>
+    
+    <!-- Container de modais -->
+    <div id="modal-container"></div>
+  </div>
+  
+  <!-- ====================================================================== -->
+  <!-- Scripts (único bloco contendo todas as funções, classes e event listeners) -->
+  <script>
+    /***************** VARIÁVEIS GLOBAIS *****************/
+    let userLoggedIn = false;      
+    let userRegistered = false;    
+    let userData = null;           
+    let logsData = [];             
+    let reportsData = [];          
+    let simulationActive = false;
+    let simulationInterval = null;
+    const categoryColors = {
+      "config": "#1E90FF",
+      "mensagem": "#9B30FF",
+      "status": "#8B0000",
+      "backup": "#FF1493",
+      "estrategia": "#FFA07A",
+      "dados": "#20B2AA",
+      "mercado": "#3CB371",
+      "limite": "#4682B4",
+      "ordens": "#DAA520",
+      "log": "#708090",
+      "pulso": "#2F4F4F",
+      "risco": "#8B008B",
+      "auditoria": "#6A5ACD",
+      "notifica": "#FFD700",
+      "colabora": "#8FBC8F",
+      "simula": "#D2691E",
+      "orquestra": "#FF69B4",
+      "integra": "#00CED1",
+      "feedback": "#FF8C00",
+      "adicional": "#B0C4DE"
+    };
+    const nodeIcons = {
+      "config": "fa-cogs",
+      "mensagem": "fa-envelope",
+      "status": "fa-tachometer-alt",
+      "backup": "fa-hdd",
+      "estrategia": "fa-chess-knight",
+      "dados": "fa-database",
+      "mercado": "fa-chart-line",
+      "limite": "fa-balance-scale",
+      "ordens": "fa-tasks",
+      "log": "fa-file-alt",
+      "pulso": "fa-heartbeat",
+      "risco": "fa-exclamation-triangle",
+      "auditoria": "fa-search",
+      "notifica": "fa-bell",
+      "colabora": "fa-users",
+      "simula": "fa-play-circle",
+      "orquestra": "fa-music",
+      "integra": "fa-link",
+      "feedback": "fa-comment",
+      "adicional": "fa-plus-circle"
+    };
+    const configurableTypes = ["config", "mensagem", "status", "backup", "estrategia", "dados", "mercado", "limite", "ordens", "notifica", "feedback", "adicional"];
+    const connections = [];
+    let exchanges = [{ name: "Binance", mode: "real" }];
+
+    /***************** FUNÇÕES COMUNS *****************/
+    function updateBottomButtons() {
+      if (!userLoggedIn) {
+        document.getElementById('btn-login').style.display = "inline-block";
+        document.getElementById('btn-cadastro').style.display = "inline-block";
+        document.getElementById('btn-logs').style.display = "none";
+        document.getElementById('btn-tour').style.display = "none";
+        document.getElementById('btn-salvar').style.display = "none";
+        document.getElementById('btn-relatorios').style.display = "none";
+        document.getElementById('btn-create-bot').style.display = "none";
+        document.getElementById('btn-feedback').style.display = "none";
+        document.getElementById('btn-cadastrar-corretora').style.display = "none";
+        document.getElementById('btn-mining-info').style.display = "none";
+        document.getElementById('btn-create-defi-bot').style.display = "none";
+        document.getElementById('btn-bot-aut').style.display = "none";
+      } else {
+        document.getElementById('btn-login').style.display = "none";
+        document.getElementById('btn-cadastro').style.display = "none";
+        document.getElementById('btn-logs').style.display = "inline-block";
+        document.getElementById('btn-tour').style.display = "inline-block";
+        document.getElementById('btn-salvar').style.display = "inline-block";
+        document.getElementById('btn-relatorios').style.display = "inline-block";
+        document.getElementById('btn-create-bot').style.display = "inline-block";
+        document.getElementById('btn-feedback').style.display = "inline-block";
+        document.getElementById('btn-cadastrar-corretora').style.display = "inline-block";
+        document.getElementById('btn-mining-info').style.display = "inline-block";
+        document.getElementById('btn-create-defi-bot').style.display = "inline-block";
+        document.getElementById('btn-bot-aut').style.display = "inline-block";
+      }
+    }
+    updateBottomButtons();
+
+    function clearModals() {
+      const modalContainer = document.getElementById('modal-container');
+      while (modalContainer.firstChild) {
+        modalContainer.removeChild(modalContainer.firstChild);
+      }
+    }
+
+    function makeDraggable(el) {
+      interact(el).draggable({
+        listeners: {
+          move (event) {
+            let left = parseFloat(el.style.left) || 0;
+            let top = parseFloat(el.style.top) || 0;
+            left += event.dx;
+            top += event.dy;
+            el.style.left = left + 'px';
+            el.style.top = top + 'px';
+            updateConnections();
+          }
+        },
+        inertia: true
+      });
+    }
+
+    function openModal(title, content) {
+      const modalContainer = document.getElementById('modal-container');
+      const overlay = document.createElement('div');
+      overlay.classList.add('modal-overlay');
+      const modal = document.createElement('div');
+      modal.classList.add('modal');
+      if(title.startsWith("Ajuda -")) { modal.classList.add("help-modal"); }
+      if(title.startsWith("Comunicação Iniciada")) {
+        modal.style.borderColor = "#00ffff";
+        modal.style.boxShadow = "0 0 20px #00ffff";
+      }
+      if(title.startsWith("Configuração Necessária") || title.startsWith("Confirmação do Bot")) {
+        modal.style.borderColor = "#FF0000";
+        modal.style.boxShadow = "0 0 20px #FF0000";
+      }
+      const h2 = document.createElement('h2');
+      h2.textContent = title;
+      modal.appendChild(h2);
+      const closeBtn = document.createElement('span');
+      closeBtn.classList.add('close');
+      closeBtn.innerHTML = '&times;';
+      closeBtn.addEventListener('click', () => {
+        modalContainer.removeChild(overlay);
+        modalContainer.removeChild(modal);
+      });
+      modal.appendChild(closeBtn);
+      const sanitizedContent = DOMPurify.sanitize(content);
+      const contentDiv = document.createElement('div');
+      contentDiv.innerHTML = sanitizedContent;
+      modal.appendChild(contentDiv);
+      modalContainer.appendChild(overlay);
+      modalContainer.appendChild(modal);
+    }
+
+    function saveVisualPositions() {
+      const positions = {};
+      allNodes.forEach(node => {
+        if (node.element.style.left && node.element.style.top) {
+          positions[node.id] = { left: node.element.style.left, top: node.element.style.top };
+        }
+      });
+      localStorage.setItem('nodePositions', JSON.stringify(positions));
+      openModal("Salvar Visual", "<p>Posições salvas com sucesso!</p>");
+    }
+
+    function loadSavedPositions() {
+      const saved = localStorage.getItem('nodePositions');
+      if (saved) {
+        const positions = JSON.parse(saved);
+        allNodes.forEach(node => {
+          if (positions[node.id]) {
+            node.element.style.left = positions[node.id].left;
+            node.element.style.top = positions[node.id].top;
+          }
+        });
+      }
+    }
+
+    function getConfigurationFieldsForType(type) {
+      switch (type) {
+        case "config":
+          return [
+            { id: "apiKey", label: "API Key", type: "text", default: "", help: "Informe a chave de API." },
+            { id: "apiSecret", label: "API Secret", type: "text", default: "", help: "Informe o segredo da API." }
+          ];
+        case "mensagem":
+          return [
+            { id: "messageTemplate", label: "Template de Mensagem", type: "text", default: "Olá!", help: "Defina a mensagem padrão." }
+          ];
+        case "status":
+          return [
+            { id: "refreshInterval", label: "Intervalo de Atualização (s)", type: "number", default: 30, help: "Tempo para atualizar o status." }
+          ];
+        default:
+          return [
+            { id: "param1", label: "Parâmetro 1", type: "text", default: "", help: "Defina o primeiro parâmetro." },
+            { id: "param2", label: "Parâmetro 2", type: "text", default: "", help: "Defina o segundo parâmetro." }
+          ];
+      }
+    }
+
+    function openNodeConfigModal(node) {
+      const fields = getConfigurationFieldsForType(node.type);
+      let formHTML = `<form id="node-config-form-${node.id}">`;
+      fields.forEach(field => {
+        formHTML += `<div style="position:relative; margin-bottom:10px;">
+                      <label for="${field.id}-${node.id}">${field.label}:</label><br>
+                      <input type="${field.type}" id="${field.id}-${node.id}" name="${field.id}" value="${field.default}" style="padding-right:20px;">
+                      <i class="fas fa-question-circle" style="position:absolute; right:5px; top:30px; cursor:pointer; color:yellow;" title="${field.help}"></i>
+                     </div>`;
+      });
+      formHTML += `<button type="button" onclick="testAndSaveNodeConfig('${node.id}')">Testar e Salvar Configuração</button>
+                   </form>`;
+      openModal(`Ajuda - ${node.label}`, formHTML);
+    }
+
+    function testNodeConfiguration(node, config) {
+      // Exemplo de testes (adicione suas validações)
+      return true;
+    }
+
+    function testAndSaveNodeConfig(nodeId) {
+      const node = allNodes.find(n => n.id === nodeId);
+      const form = document.getElementById(`node-config-form-${nodeId}`);
+      const formData = new FormData(form);
+      const config = {};
+      for (let [key, value] of formData.entries()) { config[key] = value; }
+      if (testNodeConfiguration(node, config)) {
+        if (confirm("Configuração testada com sucesso! Deseja aplicá-la?")) {
+          node.updateConfig(config);
+          openModal("Configuração Atualizada", `<p>Configurações salvas para o nó ${node.id}!</p>`);
+        }
+      } else {
+        alert("A configuração falhou nos testes.");
+      }
+    }
+
+    /***************** CLASSES DE NÓS *****************/
+    class BaseNode {
+      constructor(id, label, type) {
+        this.id = id;
+        this.label = label;
+        this.type = type;
+        this.subNodes = [];
+        this.error = false;
+        this.helpText = `O nó ${this.label} (ID: ${this.id}) executa funções específicas.`;
+        this.element = document.createElement('div');
+        this.element.classList.add('node', type);
+        if (this.type === 'principal') {
+          this.element.innerHTML = `<i class="fas fa-robot"></i>`;
+          this.element.style.background = "linear-gradient(135deg, #1F51FF, #000)";
+          this.element.style.boxShadow = "0 0 20px 8px #1F51FF";
+          this.element.style.border = "2px solid #1F51FF";
+        } else {
+          this.element.innerHTML = `<i class="fas ${nodeIcons[this.type] || 'fa-question'} node-icon"></i><br><strong>${label}<br>(${id})</strong>`;
+        }
+        const helpIcon = document.createElement('span');
+        helpIcon.classList.add('node-help');
+        helpIcon.innerHTML = '<i class="fas fa-question-circle"></i>';
+        helpIcon.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openHelpModal("Ajuda - " + this.label, this.helpText);
+        });
+        this.element.appendChild(helpIcon);
+        makeDraggable(this.element);
+        this.iconElement = this.element.querySelector('.node-icon');
+        this.labelElement = this.element.querySelector('strong');
+        this.originalBackground = this.element.classList.contains("principal")
+                                  ? "none"
+                                  : "linear-gradient(135deg, #444, #222)";
+        this.configurable = configurableTypes.includes(this.type);
+        if (this.configurable) {
+          this.element.classList.add("configurable");
+          this.element.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            openNodeConfigModal(this);
+          });
+        }
+      }
+      setErrorState() {
+        this.error = true;
+        this.element.style.background = "#FF0000";
+        this.element.style.boxShadow = "0 0 20px 5px #FF0000";
+      }
+      clearErrorState() {
+        this.error = false;
+        this.element.style.background = this.originalBackground;
+        this.element.style.boxShadow = (this.type === 'principal') ? "0 0 15px 5px #00ffff" : "0 0 10px 2px #fff";
+      }
+      connectToNode(node) {
+        this.subNodes.push(node);
+        createConnectionLine(this, node);
+      }
+      execute() {
+        console.log(`${this.label} (${this.id}): Operando.`);
+      }
+      updateConfig(config) {
+        console.log(`${this.label} (${this.id}): Atualizando configurações:`, config);
+      }
+      activate(duration = 2000) {
+        if (!this.element.classList.contains("principal")) {
+          let glowColor = categoryColors[this.type] || "#fff";
+          if(this.error) { glowColor = "#FF0000"; }
+          this.element.style.boxShadow = `0 0 15px 5px ${glowColor}`;
+          setTimeout(() => {
+            this.element.style.boxShadow = "0 0 10px 2px #fff";
+          }, duration);
+        } else {
+          this.element.style.boxShadow = "0 0 15px 5px #00ffff";
+          setTimeout(() => { }, duration);
+        }
+      }
+      run(visited = new Set()) {
+        if (visited.has(this)) return;
+        visited.add(this);
+        this.activate();
+        this.execute();
+        for (let node of this.subNodes) {
+          node.run(visited);
+        }
+      }
+    }
+
+    function openHelpModal(title, content) {
+      openModal(title, "<p>" + content + "</p>");
+    }
+
+    class PrincipalNode extends BaseNode {
+      constructor(id, label) {
+        super(id, label, "principal");
+        this.helpText = "Nó principal que centraliza a operação.";
+        this.element.innerHTML = `<i class="fas fa-robot"></i>`;
+        this.element.style.background = "linear-gradient(135deg, #1F51FF, #000)";
+        this.element.style.boxShadow = "0 0 20px 8px #1F51FF";
+        this.element.style.border = "2px solid #1F51FF";
+      }
+      activate(duration = 2000) {
+        this.element.classList.add("active");
+        setTimeout(() => {
+          this.element.classList.remove("active");
+        }, duration);
+      }
+    }
+
+    // Outras classes de nós – cada uma definida apenas uma vez:
+    class CarregadorConfigNode extends BaseNode {
+      constructor(id) { super(id, "Carrega Config", "config"); this.helpText = "Carrega configurações iniciais do sistema."; }
+      execute() { console.log(`Carrega Config (${this.id}): Carregando configurações...`); }
+    }
+    class GerenciaAPINode extends BaseNode {
+      constructor(id) { super(id, "Gerencia API", "config"); this.helpText = "Administra as chaves de API necessárias."; }
+      execute() { console.log(`Gerencia API (${this.id}): Gerenciando chaves de API...`); }
+    }
+    class OrquestraMsgNode extends BaseNode {
+      constructor(id) { super(id, "Orquestra Msg", "mensagem"); this.helpText = "Organiza as mensagens do sistema."; }
+      execute() { console.log(`Orquestra Msg (${this.id}): Orquestrando mensagens...`); }
+    }
+    class MonitoraStatusNode extends BaseNode {
+      constructor(id) { super(id, "Monitora Status", "status"); this.helpText = "Verifica o status geral do sistema."; }
+      execute() { console.log(`Monitora Status (${this.id}): Verificando status...`); }
+    }
+    class AgendaBackupNode extends BaseNode {
+      constructor(id) { super(id, "Agenda Backup", "backup"); this.helpText = "Programa backups periódicos."; }
+      execute() { console.log(`Agenda Backup (${this.id}): Agendando backups...`); }
+    }
+    class MotorRecuperacaoNode extends BaseNode {
+      constructor(id) { super(id, "Motor Recup.", "backup"); this.helpText = "Executa a recuperação do sistema em caso de falha."; }
+      execute() { console.log(`Motor Recup. (${this.id}): Executando recuperação...`); }
+    }
+    class AjustaParamNode extends BaseNode {
+      constructor(id) { super(id, "Ajusta Parâm.", "estrategia"); this.helpText = "Ajusta os parâmetros de negociação."; }
+      execute() { console.log(`Ajusta Parâm. (${this.id}): Ajustando parâmetros...`); }
+    }
+    class AgregaSinaisNode extends BaseNode {
+      constructor(id) { super(id, "Agrega Sinais", "estrategia"); this.helpText = "Integra sinais de mercado para tomada de decisão."; }
+      execute() { console.log(`Agrega Sinais (${this.id}): Agregando sinais...`); }
+    }
+    class BuscaDadosNode extends BaseNode {
+      constructor(id) { super(id, "Busca Dados", "dados"); this.helpText = "Busca dados relevantes do mercado."; }
+      execute() { console.log(`Busca Dados (${this.id}): Buscando dados...`); }
+    }
+    class GerenciaCacheNode extends BaseNode {
+      constructor(id) { super(id, "Gerencia Cache", "dados"); this.helpText = "Administra o cache para otimizar o desempenho."; }
+      execute() { console.log(`Gerencia Cache (${this.id}): Gerenciando cache...`); }
+    }
+    class ValidaDadosNode extends BaseNode {
+      constructor(id) { super(id, "Valida Dados", "dados"); this.helpText = "Confirma a integridade dos dados."; }
+      execute() { console.log(`Valida Dados (${this.id}): Validando dados...`); }
+    }
+    class AnalisaMercadoNode extends BaseNode {
+      constructor(id) { super(id, "Analisa Mercado", "mercado"); this.helpText = "Analisa as condições do mercado."; }
+      execute() { console.log(`Analisa Mercado (${this.id}): Analisando o mercado...`); }
+    }
+    class ExecutaOperacoesNode extends BaseNode {
+      constructor(id) { super(id, "Executa Ops", "mercado"); this.helpText = "Executa as operações de compra e venda."; }
+      execute() { console.log(`Executa Ops (${this.id}): Executando operações...`); }
+    }
+    class AvaliaDesempenhoNode extends BaseNode {
+      constructor(id) { super(id, "Avalia Desemp.", "mercado"); this.helpText = "Avalia a performance das operações."; }
+      execute() { console.log(`Avalia Desemp. (${this.id}): Avaliando desempenho...`); }
+    }
+    class MonitoraAPINode extends BaseNode {
+      constructor(id) { super(id, "Monitora API", "limite"); this.helpText = "Monitora as chamadas à API."; }
+      execute() { console.log(`Monitora API (${this.id}): Monitorando chamadas...`); }
+    }
+    class AjustaTaxaNode extends BaseNode {
+      constructor(id) { super(id, "Ajusta Taxa", "limite"); this.helpText = "Ajusta as taxas de operação."; }
+      execute() { console.log(`Ajusta Taxa (${this.id}): Ajustando taxas...`); }
+    }
+    class GeraAlertasNode extends BaseNode {
+      constructor(id) { super(id, "Gera Alertas", "limite"); this.helpText = "Emite alertas sobre eventos críticos."; }
+      execute() { console.log(`Gera Alertas (${this.id}): Gerando alertas...`); }
+    }
+    class GerenciaOrdensNode extends BaseNode {
+      constructor(id) { super(id, "Gerencia Ordens", "ordens"); this.helpText = "Administra a criação e cancelamento de ordens."; }
+      execute() { console.log(`Gerencia Ordens (${this.id}): Gerenciando ordens...`); }
+    }
+    class ControlaSlippageNode extends BaseNode {
+      constructor(id) { super(id, "Controla Slippage", "ordens"); this.helpText = "Controla o desvio entre preço esperado e executado."; }
+      execute() { console.log(`Controla Slippage (${this.id}): Controlando slippage...`); }
+    }
+    class TrataErrosNode extends BaseNode {
+      constructor(id) { super(id, "Trata Erros", "ordens"); this.helpText = "Trata erros ocorridos nas ordens."; }
+      execute() { console.log(`Trata Erros (${this.id}): Tratando erros...`); }
+    }
+    class LogLocalNode extends BaseNode {
+      constructor(id) { super(id, "Log Local", "log"); this.helpText = "Registra logs para auditoria."; }
+      execute() { console.log(`Log Local (${this.id}): Registrando log...`); }
+    }
+    class MonitoraPulsoNode extends BaseNode {
+      constructor(id) { super(id, "Monitora Pulso", "pulso"); this.helpText = "Verifica a atividade do sistema."; }
+      execute() { console.log(`Monitora Pulso (${this.id}): Verificando batimentos...`); }
+    }
+    class CalculaRiscoNode extends BaseNode {
+      constructor(id) { super(id, "Calcula Risco", "risco"); this.helpText = "Calcula os riscos da operação."; }
+      execute() { console.log(`Calcula Risco (${this.id}): Calculando riscos...`); }
+    }
+    class MonitoraLimitesNode extends BaseNode {
+      constructor(id) { super(id, "Monitora Limites", "risco"); this.helpText = "Verifica os limites de exposição."; }
+      execute() { console.log(`Monitora Limites (${this.id}): Monitorando limites...`); }
+    }
+    class PlanejaMitigNode extends BaseNode {
+      constructor(id) { super(id, "Planeja Mitig.", "risco"); this.helpText = "Planeja ações para reduzir riscos."; }
+      execute() { console.log(`Planeja Mitig. (${this.id}): Planejando mitigações...`); }
+    }
+    class AgregaLogsNode extends BaseNode {
+      constructor(id) { super(id, "Agrega Logs", "auditoria"); this.helpText = "Consolida logs de várias fontes."; }
+      execute() { console.log(`Agrega Logs (${this.id}): Agregando logs...`); }
+    }
+    class GeraRelatoriosNode extends BaseNode {
+      constructor(id) { super(id, "Gera Relatórios", "auditoria"); this.helpText = "Gera relatórios detalhados."; }
+      execute() { console.log(`Gera Relatórios (${this.id}): Gerando relatórios...`); }
+    }
+    class RastreiaErrosNode extends BaseNode {
+      constructor(id) { super(id, "Rastreia Erros", "auditoria"); this.helpText = "Rastreia erros para facilitar correções."; }
+      execute() { console.log(`Rastreia Erros (${this.id}): Rastreando erros...`); }
+    }
+    class NotificaEmailNode extends BaseNode {
+      constructor(id) { super(id, "Notifica Email", "notifica"); this.helpText = "Envia e-mails de notificação."; }
+      execute() { console.log(`Notifica Email (${this.id}): Enviando e-mail...`); }
+    }
+    class NotificaSMSENode extends BaseNode {
+      constructor(id) { super(id, "Notifica SMS/Push", "notifica"); this.helpText = "Envia SMS/Push para alertas."; }
+      execute() { console.log(`Notifica SMS/Push (${this.id}): Enviando SMS/Push...`); }
+    }
+    class AtualizaDashNode extends BaseNode {
+      constructor(id) { super(id, "Atualiza Dash", "notifica"); this.helpText = "Atualiza o dashboard com informações em tempo real."; }
+      execute() { console.log(`Atualiza Dash (${this.id}): Atualizando dashboard...`); }
+    }
+    class IntermediadorDadosNode extends BaseNode {
+      constructor(id) { super(id, "Intermedia Dados", "colabora"); this.helpText = "Facilita a troca de dados entre módulos."; }
+      execute() { console.log(`Intermedia Dados (${this.id}): Intermediando dados...`); }
+    }
+    class SincronizaDadosNode extends BaseNode {
+      constructor(id) { super(id, "Sincroniza Dados", "colabora"); this.helpText = "Sincroniza informações do sistema."; }
+      execute() { console.log(`Sincroniza Dados (${this.id}): Sincronizando dados...`); }
+    }
+    class HubColaborativoNode extends BaseNode {
+      constructor(id) { super(id, "Hub Colab.", "colabora"); this.helpText = "Facilita a colaboração entre usuários."; }
+      execute() { console.log(`Hub Colab. (${this.id}): Facilitando colaboração...`); }
+    }
+    class SimulaOpsNode extends BaseNode {
+      constructor(id) { super(id, "Simula Ops", "simula"); this.helpText = "Realiza simulações de operações."; }
+      execute() { console.log(`Simula Ops (${this.id}): Executando simulações...`); }
+    }
+    class MonitoraPerfNode extends BaseNode {
+      constructor(id) { super(id, "Monitora Perf.", "simula"); this.helpText = "Monitora a performance em tempo real."; }
+      execute() { console.log(`Monitora Perf. (${this.id}): Monitorando performance...`); }
+    }
+    class TestaParamNode extends BaseNode {
+      constructor(id) { super(id, "Testa Parâm.", "simula"); this.helpText = "Testa parâmetros para otimização."; }
+      execute() { console.log(`Testa Parâm. (${this.id}): Testando parâmetros...`); }
+    }
+    class AgendaTarefasNode extends BaseNode {
+      constructor(id) { super(id, "Agenda Tarefas", "orquestra"); this.helpText = "Agenda tarefas operacionais."; }
+      execute() { console.log(`Agenda Tarefas (${this.id}): Agendando tarefas...`); }
+    }
+    class GerenciaFallbackNode extends BaseNode {
+      constructor(id) { super(id, "Gerencia Fallback", "orquestra"); this.helpText = "Gerencia alternativas em caso de falhas."; }
+      execute() { console.log(`Gerencia Fallback (${this.id}): Gerenciando fallback...`); }
+    }
+    class BalanceiaCargaNode extends BaseNode {
+      constructor(id) { super(id, "Balanceia Carga", "orquestra"); this.helpText = "Distribui a carga de operações."; }
+      execute() { console.log(`Balanceia Carga (${this.id}): Balanceando carga...`); }
+    }
+    class ConectaBDNode extends BaseNode {
+      constructor(id) { super(id, "Conecta BD", "integra"); this.helpText = "Conecta ao banco de dados."; }
+      execute() { console.log(`Conecta BD (${this.id}): Conectando ao BD...`); }
+    }
+    class ConectaMonitorNode extends BaseNode {
+      constructor(id) { super(id, "Conecta Monitor", "integra"); this.helpText = "Conecta aos sistemas de monitoramento."; }
+      execute() { console.log(`Conecta Monitor (${this.id}): Conectando aos sistemas...`); }
+    }
+    class GatewayAPINode extends BaseNode {
+      constructor(id) { super(id, "Gateway API", "integra"); this.helpText = "Gerencia as requisições para a API."; }
+      execute() { console.log(`Gateway API (${this.id}): Gerenciando requisições API...`); }
+    }
+    class InterfaceUserNode extends BaseNode {
+      constructor(id) { super(id, "Interface Usuário", "feedback"); this.helpText = "Exibe a interface para o usuário."; }
+      execute() { console.log(`Interface Usuário (${this.id}): Exibindo interface...`); }
+    }
+    class AnalisaFeedbackNode extends BaseNode {
+      constructor(id) { super(id, "Analisa Feedback", "feedback"); this.helpText = "Analisa o feedback dos usuários."; }
+      execute() { console.log(`Analisa Feedback (${this.id}): Analisando feedback...`); }
+    }
+    class OverrideManualNode extends BaseNode {
+      constructor(id) { super(id, "Override Manual", "feedback"); this.helpText = "Permite ajustes manuais nas operações."; }
+      execute() { console.log(`Override Manual (${this.id}): Gerenciando override manual...`); }
+    }
+    class RotuloExemploNode extends BaseNode {
+      constructor(id) { super(id, "Rótulo Exemplo", "adicional"); this.helpText = "Exemplo de nó adicional."; }
+      execute() { console.log(`Rótulo Exemplo (${this.id}): Operação de exemplo...`); }
+    }
+    class LogLocalExtraNode extends BaseNode {
+      constructor(id) { super(id, "Log Local Extra", "adicional"); this.helpText = "Registra logs extras."; }
+      execute() { console.log(`Log Local Extra (${this.id}): Registrando log extra...`); }
+    }
+    class MonitoraPulsoExtraNode extends BaseNode {
+      constructor(id) { super(id, "Monitora Pulso Extra", "adicional"); this.helpText = "Monitora atividades extras para diagnóstico."; }
+      execute() { console.log(`Monitora Pulso Extra (${this.id}): Monitorando pulso extra...`); }
+    }
+
+    /***************** CLASSE: BotNegociacaoNode *****************/
+    class BotNegociacaoNode extends BaseNode {
+      constructor(id, config) {
+        super(id, "Bot Negociação", "ordens");
+        this.config = config;
+        this.helpText = `<strong>Bot de Negociação Configurado:</strong><br>
+                          Limite de Gastos: ${config.spendingLimit}<br>
+                          Moeda Base: ${config.baseCurrency}<br>
+                          Quantidade de Pares: ${config.pairCount}<br>
+                          Margem de Queda para Recompra: ${config.rebuyDropMargin}%<br>
+                          Valor das Ordens: ${config.orderValue}<br>
+                          Margem de Lucro: ${config.profitMargin}%<br>
+                          Stop-Loss: ${config.stopLoss}%<br>
+                          Slippage: ${config.slippage}%<br>
+                          Tipo de Ordem: ${config.orderType}<br>
+                          Corretora: ${config.exchange}<br>
+                          Modo de Teste: ${config.testMode}<br>
+                          Tipo de Conta: ${config.accountType}`;
+        this.labelElement.innerHTML = `Bot ${id}<br>${config.baseCurrency} - ${config.orderType}<br>${config.exchange}`;
+      }
+      execute() {
+        console.log(`Bot de Negociação ${this.id}: executando com configuração:`, this.config);
+      }
+    }
+
+    /***************** CLASSE: DefiBotNode *****************/
+    class DefiBotNode extends BaseNode {
+      constructor(id, config) {
+        super(id, "Bot DeFi", "ordens");
+        this.config = config;
+        this.helpText = `<strong>Bot DeFi Configurado:</strong><br>
+                          Blockchain: ${config.blockchain}<br>
+                          DEX: ${config.dex}<br>
+                          Token: ${config.token}<br>
+                          Quantidade Inicial: ${config.amount}<br>
+                          Limite de Gastos: ${config.spendingLimit}<br>
+                          Moeda Base: ${config.baseCurrency}<br>
+                          Quantidade de Pares: ${config.pairCount}<br>
+                          Margem de Queda para Recompra: ${config.rebuyDropMargin}%<br>
+                          Valor das Ordens: ${config.orderValue}<br>
+                          Margem de Lucro: ${config.profitMargin}%<br>
+                          Stop-Loss: ${config.stopLoss}%<br>
+                          Slippage: ${config.slippage}%<br>
+                          Tipo de Ordem: ${config.orderType}<br>
+                          Corretora: ${config.exchange}<br>
+                          Modo de Teste: ${config.testMode}<br>
+                          Tipo de Conta: ${config.accountType}`;
+        this.labelElement.innerHTML = `Bot DeFi ${id}<br>${config.blockchain} - ${config.dex}`;
+      }
+      execute() {
+        console.log(`Bot DeFi ${this.id}: executando com configuração:`, this.config);
+      }
+    }
+
+    /***************** CLASSE: AutoBotNode (única definição para Bot Aut) *****************/
+    class AutoBotNode extends BaseNode {
+      constructor(id, broker) {
+        super(id, "Bot Aut", "ordens");
+        this.broker = broker;
+        this.helpText = "Bot Aut: Operações automáticas com configurações pré-definidas.";
+        this.labelElement.innerHTML = `Bot Aut ${id}<br>Broker: ${broker}`;
+        this.element.style.background = "#00FF00";
+        this.element.style.boxShadow = "0 0 15px 5px #00FF00";
+        this.element.style.border = "2px solid #00FF00";
+      }
+      activate(duration = 2000) {
+        this.element.style.boxShadow = "0 0 25px 10px #00FF00";
+      }
+    }
+
+    /***************** FUNÇÕES DE CONEXÃO VISUAL *****************/
+    function createConnectionLine(source, target) {
+      const svg = document.getElementById("connections-svg");
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("stroke", "white");
+      line.setAttribute("stroke-width", "2");
+      line.setAttribute("stroke-dasharray", "2, 6");
+      svg.appendChild(line);
+      const arrowCount = 12;
+      let arrows = [];
+      for (let i = 0; i < arrowCount; i++) {
+        let arrow = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        arrow.setAttribute("points", "0,-5 10,0 0,5");
+        arrow.setAttribute("fill", "white");
+        arrow.style.display = "none";
+        svg.appendChild(arrow);
+        arrows.push(arrow);
+      }
+      connections.push({
+        source: source,
+        target: target,
+        line: line,
+        dashOffset: 0,
+        progress: 0,
+        arrows: arrows
+      });
+    }
+
+    function updateConnections() {
+      connections.forEach(conn => {
+        const srcRect = conn.source.element.getBoundingClientRect();
+        const tgtRect = conn.target.element.getBoundingClientRect();
+        const x1 = srcRect.left + srcRect.width / 2 + window.scrollX;
+        const y1 = srcRect.top + srcRect.height / 2 + window.scrollY;
+        const x2 = tgtRect.left + tgtRect.width / 2 + window.scrollX;
+        const y2 = tgtRect.top + tgtRect.height / 2 + window.scrollY;
+        conn.line.setAttribute("x1", x1);
+        conn.line.setAttribute("y1", y1);
+        conn.line.setAttribute("x2", x2);
+        conn.line.setAttribute("y2", y2);
+        let color = conn.source.error 
+          ? "#FF0000" 
+          : (conn.source.type === "principal" ? "#00ffff" : (categoryColors[conn.source.type] || "#fff"));
+        conn.line.setAttribute("stroke", color);
+        conn.progress = (conn.progress + 0.005) % 1;
+        const arrowCount = conn.arrows.length;
+        const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+        for (let i = 0; i < arrowCount; i++) {
+          let progressOffset = (conn.progress + i / arrowCount) % 1;
+          let arrowX = x1 + progressOffset * (x2 - x1);
+          let arrowY = y1 + progressOffset * (y2 - y1);
+          conn.arrows[i].setAttribute("fill", color);
+          conn.arrows[i].setAttribute("transform", `translate(${arrowX}, ${arrowY}) rotate(${angle})`);
+          conn.arrows[i].style.display = "block";
+        }
+      });
+    }
+    function animateConnections() {
+      updateConnections();
+      requestAnimationFrame(animateConnections);
+    }
+    animateConnections();
+
+    function fixInitialPositions() {
+      const saved = localStorage.getItem('nodePositions');
+      if (saved) {
+        const positions = JSON.parse(saved);
+        allNodes.forEach(node => {
+          if (positions[node.id]) {
+            node.element.style.left = positions[node.id].left;
+            node.element.style.top = positions[node.id].top;
+          }
+        });
+      } else {
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        let mainNode = allNodes.find(n => n.id === "B1");
+        if (mainNode) {
+          mainNode.element.style.left = (centerX - mainNode.element.offsetWidth / 2) + "px";
+          mainNode.element.style.top = (centerY - mainNode.element.offsetHeight / 2) + "px";
+        }
+        const otherNodes = allNodes.filter(n => n.id !== "B1");
+        const count = otherNodes.length;
+        const R = Math.min(centerX, centerY) - 100;
+        otherNodes.forEach((node, i) => {
+          let angle = (2 * Math.PI * i) / count;
+          const x = centerX + R * Math.cos(angle) - node.element.offsetWidth / 2;
+          const y = centerY + R * Math.sin(angle) - node.element.offsetHeight / 2;
+          node.element.style.left = x + "px";
+          node.element.style.top = y + "px";
+        });
+      }
+    }
+    setTimeout(fixInitialPositions, 100);
+
+    /***************** INSTANCIAÇÃO DOS NÓS *****************/
+    const a1 = new CarregadorConfigNode("A1");
+    const a2 = new GerenciaAPINode("A2");
+    const b1 = new PrincipalNode("B1", "Orquestra Msg");
+    const b2 = new MonitoraStatusNode("B2");
+    const c1 = new AgendaBackupNode("C1");
+    const c2 = new MotorRecuperacaoNode("C2");
+    const d1 = new AjustaParamNode("D1");
+    const d2 = new AgregaSinaisNode("D2");
+    const e1 = new BuscaDadosNode("E1");
+    const e2 = new GerenciaCacheNode("E2");
+    const e3 = new ValidaDadosNode("E3");
+    const f1 = new AnalisaMercadoNode("F1");
+    const f2 = new ExecutaOperacoesNode("F2");
+    const f3 = new AvaliaDesempenhoNode("F3");
+    const g1 = new MonitoraAPINode("G1");
+    const g2 = new AjustaTaxaNode("G2");
+    const g3 = new GeraAlertasNode("G3");
+    const h1 = new GerenciaOrdensNode("H1");
+    const h2 = new ControlaSlippageNode("H2");
+    const h3 = new TrataErrosNode("H3");
+    const i1 = new LogLocalNode("I1");
+    const i2 = new MonitoraPulsoNode("I2");
+    const j1 = new CalculaRiscoNode("J1");
+    const j2 = new MonitoraLimitesNode("J2");
+    const j3 = new PlanejaMitigNode("J3");
+    const k1 = new AgregaLogsNode("K1");
+    const k2 = new GeraRelatoriosNode("K2");
+    const k3 = new RastreiaErrosNode("K3");
+    const l1 = new NotificaEmailNode("L1");
+    const l2 = new NotificaSMSENode("L2");
+    const l3 = new AtualizaDashNode("L3");
+    const m1 = new IntermediadorDadosNode("M1");
+    const m2 = new SincronizaDadosNode("M2");
+    const m3 = new HubColaborativoNode("M3");
+    const n1 = new SimulaOpsNode("N1");
+    const n2 = new MonitoraPerfNode("N2");
+    const n3 = new TestaParamNode("N3");
+    const o1 = new AgendaTarefasNode("O1");
+    const o2 = new GerenciaFallbackNode("O2");
+    const o3 = new BalanceiaCargaNode("O3");
+    const p1 = new ConectaBDNode("P1");
+    const p2 = new ConectaMonitorNode("P2");
+    const p3 = new GatewayAPINode("P3");
+    const q1 = new InterfaceUserNode("Q1");
+    const q2 = new AnalisaFeedbackNode("Q2");
+    const q3 = new OverrideManualNode("Q3");
+    const s1_n1 = new RotuloExemploNode("s1-n1");
+    const s1_n2 = new LogLocalExtraNode("s1-n2");
+    const s1_n3 = new MonitoraPulsoExtraNode("s1-n3");
+
+    /***************** CONEXÕES ENTRE OS NÓS *****************/
+    a1.connectToNode(b1);
+    a2.connectToNode(b1);
+    b1.connectToNode(d1);
+    b1.connectToNode(e1);
+    b1.connectToNode(f1);
+    b1.connectToNode(g1);
+    c1.connectToNode(b2);
+    c2.connectToNode(b2);
+    d2.connectToNode(m3);
+    d2.connectToNode(e2);
+    e3.connectToNode(m2);
+    f3.connectToNode(m1);
+    g3.connectToNode(l1);
+    h1.connectToNode(i1);
+    i2.connectToNode(j1);
+    j2.connectToNode(k1);
+    k2.connectToNode(l2);
+    l3.connectToNode(m3);
+    d1.connectToNode(e1);
+    e1.connectToNode(g1);
+    g1.connectToNode(h1);
+    i1.connectToNode(j1);
+    j1.connectToNode(k1);
+    k1.connectToNode(l1);
+    l1.connectToNode(m1);
+    m1.connectToNode(n1);
+    n1.connectToNode(o1);
+    o1.connectToNode(p1);
+    p1.connectToNode(q1);
+    e2.connectToNode(f2);
+    f2.connectToNode(g2);
+    g2.connectToNode(h2);
+    h2.connectToNode(i2);
+    i2.connectToNode(j2);
+    j2.connectToNode(k2);
+    k2.connectToNode(l2);
+    l2.connectToNode(m2);
+    m2.connectToNode(n2);
+    n2.connectToNode(o2);
+    o2.connectToNode(p2);
+    p2.connectToNode(q2);
+    q2.connectToNode(q3);
+    j1.connectToNode(i1);
+    q3.connectToNode(s1_n1);
+    s1_n1.connectToNode(s1_n2);
+    s1_n2.connectToNode(s1_n3);
+    h2.connectToNode(h3);
+    h3.connectToNode(i1);
+    j1.connectToNode(j3);
+    k2.connectToNode(k3);
+    k3.connectToNode(l1);
+    n1.connectToNode(n3);
+    o2.connectToNode(o3);
+    o3.connectToNode(p3);
+
+    /***************** INSERÇÃO DOS NÓS NA INTERFACE *****************/
+    const container = document.getElementById('nodes-container');
+    const allNodes = [a1, a2, b1, b2, c1, c2, d1, d2, e1, e2, e3, f1, f2, f3, g1, g2, g3, h1, h2, h3,
+                       i1, i2, j1, j2, j3, k1, k2, k3, l1, l2, l3, m1, m2, m3, n1, n2, n3, o1, o2, o3,
+                       p1, p2, p3, q1, q2, q3, s1_n1, s1_n2, s1_n3];
+    allNodes.forEach(node => { container.appendChild(node.element); });
+    setTimeout(fixInitialPositions, 100);
+
+    /***************** EVENT LISTENERS (cada um declarado apenas uma vez) *****************/
+    document.getElementById('btn-login').addEventListener('click', () => {
+      const loginContent = `
+        <form id="login-form">
+          <label>Email:</label><br>
+          <input type="email" id="login-usuario" required><br>
+          <label>Senha:</label><br>
+          <input type="password" id="login-senha" required><br><br>
+          <button type="button" onclick="doLogin()">Entrar</button>
+          <button type="button" onclick="openForgotPasswordModal()">Esqueci minha senha</button>
+        </form>`;
+      openModal("Login", loginContent);
+    });
+    document.getElementById('btn-relatorios').addEventListener('click', () => {
+      openModal("Gerar Relatórios", "<p>Conteúdo para relatórios.</p>");
+    });
+    document.getElementById('btn-logs').addEventListener('click', () => {
+      openModal("Visualizar Logs", "<p>Conteúdo para logs.</p>");
+    });
+    document.getElementById('btn-cadastrar-corretora').addEventListener('click', openExchangeModal);
+    document.getElementById('btn-cadastro').addEventListener('click', openCadastroModal);
+    document.getElementById('btn-tour').addEventListener('click', startInterfaceTour);
+    document.getElementById('btn-mining-info').addEventListener('click', () => {
+      openModal("Mineração de Dados e Política de Privacidade", `
+        <form id="mining-form">
+          <p>Para participar da mineração, seu dispositivo será utilizado para coletar informações. Em troca, você receberá tokens Vision Bot.</p>
+          <textarea readonly style="width:100%; height:150px; background:#222; color:#fff; border:1px solid #555; padding:5px;">
+Política de Privacidade – Detalhes da política...
+          </textarea>
+          <br>
+          <label><input type="checkbox" id="mining-consent" required> Eu li e concordo com a Política de Privacidade.</label>
+          <br><br>
+          <button type="submit">Aceitar e Ativar Mineração</button>
+          <button type="button" onclick="clearModals()">Cancelar</button>
+        </form>
+      `);
+    });
+    document.getElementById('btn-create-bot').addEventListener('click', openBotConfigModal);
+    document.getElementById('btn-bot-aut').addEventListener('click', openBotAutModal);
+
+    /***************** FUNÇÕES DE LOGIN, CADASTRO, RECUPERAÇÃO, CORRETORA, BOT, TOUR, ETC. *****************/
+    function doLogin() {
+      const email = document.getElementById('login-usuario').value;
+      const senha = document.getElementById('login-senha').value;
+      if (!userRegistered || !userData) {
+        openModal("Atenção", "<p>Você não está cadastrado. Clique em 'Cadastro' para se registrar.</p>");
+        document.getElementById('btn-cadastro').classList.add('pending-config');
+        return;
+      }
+      if (email !== userData.email) {
+        openModal("Erro", "<p>Email incorreto!</p>");
+        return;
+      }
+      if (senha !== userData.password) {
+        openModal("Erro", "<p>Senha incorreta!</p>");
+        return;
+      }
+      userLoggedIn = true;
+      updateBottomButtons();
+      clearModals();
+      alert("Login realizado com sucesso!");
+    }
+    function openForgotPasswordModal() {
+      if (!userRegistered || !userData) {
+        openModal("Atenção", "<p>Você não está cadastrado. Registre-se primeiro.</p>");
+        document.getElementById('btn-cadastro').classList.add('pending-config');
+        return;
+      }
+      const forgotContent = `
+        <form id="forgot-form">
+          <label>Email:</label><br>
+          <input type="email" id="forgot-email" required value="${userData.email}"><br>
+          <p>Pergunta Secreta: ${userData.secretQuestion}</p>
+          <label>Resposta Secreta:</label><br>
+          <input type="text" id="forgot-answer" required><br>
+          <label>Nova Senha:</label><br>
+          <input type="password" id="forgot-new-password" required><br>
+          <label>Confirmar Nova Senha:</label><br>
+          <input type="password" id="forgot-confirm-password" required><br>
+          <label><input type="checkbox" id="forgot-confirm" required> Confirmo que as informações são verdadeiras.</label><br>
+          <button type="button" onclick="doForgotPassword()">Recuperar Senha</button>
+        </form>
+      `;
+      openModal("Recuperação de Senha", forgotContent);
+    }
+    function doForgotPassword() {
+      const email = document.getElementById('forgot-email').value;
+      const answer = document.getElementById('forgot-answer').value;
+      const newPassword = document.getElementById('forgot-new-password').value;
+      const confirmPassword = document.getElementById('forgot-confirm-password').value;
+      const confirmed = document.getElementById('forgot-confirm').checked;
+      if (email !== userData.email) {
+        openModal("Erro", "<p>Email incorreto para recuperação.</p>");
+        return;
+      }
+      if (answer !== userData.secretAnswer) {
+        openModal("Erro", "<p>Resposta secreta incorreta.</p>");
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        openModal("Erro", "<p>As novas senhas não conferem!</p>");
+        return;
+      }
+      if (!confirmed) {
+        openModal("Atenção", "<p>Você deve confirmar que as informações são verdadeiras.</p>");
+        return;
+      }
+      openModal("Alerta de Segurança", "<p style='color:red; font-weight:bold;'>ATENÇÃO: As informações de recuperação devem ser verdadeiras para garantir a segurança da sua conta.</p>");
+      userData.password = newPassword;
+      clearModals();
+      alert("Senha atualizada com sucesso!");
+    }
+    function openCadastroModal() {
+      document.getElementById('btn-cadastro').classList.remove('pending-config');
+      const cadastroContent = `
+        <form id="cadastro-form">
+          <label>Nome de Usuário:</label><br>
+          <input type="text" id="cadastro-usuario" required><br>
+          <label>Email:</label><br>
+          <input type="email" id="cadastro-email" required><br>
+          <label>Senha:</label><br>
+          <input type="password" id="cadastro-senha" required><br>
+          <label>Confirmar Senha:</label><br>
+          <input type="password" id="cadastro-senha2" required><br>
+          <label>Pergunta Secreta:</label><br>
+          <input type="text" id="cadastro-pergunta" placeholder="Ex: Nome do seu primeiro animal" required><br>
+          <label>Resposta Secreta:</label><br>
+          <input type="text" id="cadastro-resposta" required><br>
+          <p>Política de Privacidade: Ao se cadastrar, você reconhece os riscos envolvidos.</p>
+          <label><input type="checkbox" id="cadastro-privacidade" required> Li e aceito a Política de Privacidade.</label><br>
+          <button type="button" onclick="doCadastro()">Cadastrar</button>
+        </form>
+      `;
+      openModal("Cadastro de Usuário", cadastroContent);
+    }
+    function doCadastro() {
+      const usuario = document.getElementById('cadastro-usuario').value;
+      const email = document.getElementById('cadastro-email').value;
+      const senha = document.getElementById('cadastro-senha').value;
+      const senha2 = document.getElementById('cadastro-senha2').value;
+      const pergunta = document.getElementById('cadastro-pergunta').value;
+      const resposta = document.getElementById('cadastro-resposta').value;
+      const privacidade = document.getElementById('cadastro-privacidade').checked;
+      if (senha !== senha2) {
+        openModal("Erro", "<p>As senhas não conferem!</p>");
+        return;
+      }
+      if (!privacidade) {
+        openModal("Atenção", "<p>Você deve aceitar a Política de Privacidade para se cadastrar.</p>");
+        return;
+      }
+      userData = { username: usuario, email: email, password: senha, secretQuestion: pergunta, secretAnswer: resposta };
+      userRegistered = true;
+      userLoggedIn = true;
+      updateBottomButtons();
+      clearModals();
+      alert("Cadastro realizado com sucesso!");
+    }
+    function openExchangeModal() {
+      const formContent = `
+        <form id="exchange-form">
+          <label>Nome da Corretora:</label><br>
+          <input type="text" id="exchange-name" required><br>
+          <label>API Key:</label><br>
+          <input type="text" id="exchange-api-key" required><br>
+          <label>API Secret:</label><br>
+          <input type="text" id="exchange-api-secret" required><br>
+          <label>Ambiente:</label><br>
+          <select id="exchange-mode">
+            <option value="real">Real</option>
+            <option value="testnet">Testnet</option>
+          </select><br><br>
+          <button type="button" onclick="saveExchange()">Cadastrar Corretora</button>
+        </form>
+      `;
+      openModal("Cadastro de Corretora", formContent);
+    }
+    function saveExchange() {
+      const name = document.getElementById("exchange-name").value;
+      const apiKey = document.getElementById("exchange-api-key").value;
+      const apiSecret = document.getElementById("exchange-api-secret").value;
+      const mode = document.getElementById("exchange-mode").value;
+      if (name && apiKey && apiSecret) {
+        exchanges.push({ name: name, apiKey: apiKey, apiSecret: apiSecret, mode: mode });
+        alert("Corretora cadastrada com sucesso!");
+        updateExchangeOptions('bot-exchange');
+        updateExchangeOptions('defi-exchange');
+        clearModals();
+      } else {
+        alert("Por favor, preencha todos os campos.");
+      }
+    }
+    function openBotConfigModal() {
+      const formContent = `
+        <form id="bot-config-form">
+          <label>Quantidade de bots:</label><br>
+          <input type="number" id="bot-quantity" value="1" min="1"><br>
+          <label>Limite de gastos:</label><br>
+          <input type="number" id="bot-spending-limit" value="1000" min="0" step="any"><br>
+          <label>Moeda base:</label><br>
+          <select id="bot-base-currency">
+            <option value="USDT">USDT</option>
+            <option value="BTC">BTC</option>
+            <option value="ETH">ETH</option>
+          </select><br>
+          <label>Quantidade de pares a negociar:</label><br>
+          <input type="number" id="bot-pair-count" value="1" min="1"><br>
+          <label>Margem de queda para recompra (%):</label><br>
+          <input type="number" id="bot-rebuy-drop-margin" value="2" min="0" step="0.1"><br>
+          <label>Valor das ordens:</label><br>
+          <input type="number" id="bot-order-value" value="50" min="0" step="any"><br>
+          <label>Margem de lucro (%):</label><br>
+          <input type="number" id="bot-profit-margin" value="2" min="0" step="0.1"><br>
+          <label>Stop-Loss (%):</label><br>
+          <input type="number" id="bot-stop-loss" value="5" min="0" step="0.1"><br>
+          <label>Slippage (%):</label><br>
+          <input type="number" id="bot-slippage" value="0.5" min="0" step="0.1"><br>
+          <label>Tipo de Ordem:</label><br>
+          <select id="bot-order-type">
+            <option value="limitada">Limitada</option>
+            <option value="mercado">Mercado</option>
+          </select><br>
+          <label>Corretora:</label><br>
+          <select id="bot-exchange"></select><br><br>
+          <p>Modo de Teste da Chave:</p>
+          <label><input type="radio" name="bot-key-test-mode" value="simples" checked onclick="alert('Atenção: O modo Simples pode resultar em testes incompletos.');"> Modo Simples</label>
+          <label><input type="radio" name="bot-key-test-mode" value="completo" onclick="alert('Atenção: O modo Completo pode ser mais demorado.');"> Modo Completo</label>
+          <br><br>
+          <p>Tipo de Conta:</p>
+          <label><input type="radio" name="bot-account-type" value="real" checked> Conta Real</label>
+          <label><input type="radio" name="bot-account-type" value="testnet"> Conta Testnet</label>
+          <br><br>
+          <button type="button" onclick="saveBotConfig()">Criar Bot(s)</button>
+        </form>
+      `;
+      openModal("Configuração do Novo Bot", formContent);
+      setTimeout(() => { updateExchangeOptions('bot-exchange'); }, 100);
+    }
+    let botNegociacaoCount = 0;
+    function saveBotConfig() {
+      const quantity = parseInt(document.getElementById("bot-quantity").value) || 1;
+      const spendingLimit = parseFloat(document.getElementById("bot-spending-limit").value) || 0;
+      const baseCurrency = document.getElementById("bot-base-currency").value;
+      const pairCount = parseInt(document.getElementById("bot-pair-count").value) || 1;
+      const rebuyDropMargin = parseFloat(document.getElementById("bot-rebuy-drop-margin").value) || 0;
+      const orderValue = parseFloat(document.getElementById("bot-order-value").value) || 0;
+      const profitMargin = parseFloat(document.getElementById("bot-profit-margin").value) || 0;
+      const stopLoss = parseFloat(document.getElementById("bot-stop-loss").value) || 0;
+      const slippage = parseFloat(document.getElementById("bot-slippage").value) || 0;
+      const orderType = document.getElementById("bot-order-type").value;
+      const exchange = document.getElementById("bot-exchange").value;
+      const testModeElements = document.getElementsByName("bot-key-test-mode");
+      let testMode = "";
+      for (let elem of testModeElements) { if (elem.checked) { testMode = elem.value; break; } }
+      const accountTypeElements = document.getElementsByName("bot-account-type");
+      let accountType = "";
+      for (let elem of accountTypeElements) { if (elem.checked) { accountType = elem.value; break; } }
+      const config = { spendingLimit, baseCurrency, pairCount, rebuyDropMargin, orderValue, profitMargin, stopLoss, slippage, orderType, exchange, testMode, accountType };
+      const selectedExchange = exchanges.find(ex => ex.name === exchange);
+      if (accountType === "testnet" && (!selectedExchange || selectedExchange.mode !== "testnet")) {
+        alert("A corretora selecionada não suporta o modo Testnet.");
+        return;
+      }
+      let summary = `<p>Confirme as configurações do Bot:</p>
+                     <ul>
+                       <li>Limite de Gastos: ${spendingLimit}</li>
+                       <li>Moeda Base: ${baseCurrency}</li>
+                       <li>Quantidade de Pares: ${pairCount}</li>
+                       <li>Margem de Queda para Recompra: ${rebuyDropMargin}%</li>
+                       <li>Valor das Ordens: ${orderValue}</li>
+                       <li>Margem de Lucro: ${profitMargin}</li>
+                       <li>Stop-Loss: ${stopLoss}%</li>
+                       <li>Slippage: ${slippage}%</li>
+                       <li>Tipo de Ordem: ${orderType}</li>
+                       <li>Corretora: ${exchange}</li>
+                       <li>Modo de Teste: ${testMode}</li>
+                       <li>Tipo de Conta: ${accountType}</li>
+                     </ul>`;
+      openModal("Confirmação do Bot", summary + `<button id="confirm-bot">Concordo</button> <button id="cancel-bot">Cancelar</button>`);
+      setTimeout(() => {
+        document.getElementById('confirm-bot').addEventListener('click', () => {
+          for (let i = 0; i < quantity; i++) {
+            botNegociacaoCount++;
+            const newBotId = "BN" + botNegociacaoCount;
+            const newBot = new BotNegociacaoNode(newBotId, config);
+            container.appendChild(newBot.element);
+            allNodes.push(newBot);
+            f1.connectToNode(newBot);
+            newBot.connectToNode(h1);
+          }
+          document.getElementById('btn-create-bot').classList.remove('pending-config');
+          clearModals();
+          openModal("Novo Bot Criado", `<p>${quantity} bot(s) foram criados com sucesso!</p>`);
+          b1.run();
+        });
+        document.getElementById('cancel-bot').addEventListener('click', () => { clearModals(); });
+      }, 100);
+    }
+    function openBotAutModal() {
+      const autContent = `
+         <form id="bot-aut-form">
+            <label>Selecione a corretora para iniciar o Bot Aut:</label><br>
+            <select id="bot-aut-exchange"></select><br><br>
+            <button type="button" onclick="confirmBotAut()">OK</button>
+         </form>
+      `;
+      openModal("Configuração do Bot Aut", autContent);
+      setTimeout(() => { updateExchangeOptions('bot-aut-exchange'); }, 100);
+    }
+    function confirmBotAut() {
+      const exchange = document.getElementById('bot-aut-exchange').value;
+      if (exchange === "") {
+         openModal("Erro", "<p>Selecione uma corretora válida.</p>");
+         return;
+      }
+      openModal("Confirmação", `<p>Você tem certeza que deseja iniciar o Bot Aut na corretora ${exchange}?</p>
+         <button onclick="startAutoBot('${exchange}')">Confirmar</button>
+         <button onclick="clearModals()">Cancelar</button>
+      `);
+    }
+    function startAutoBot(exchange) {
+      clearModals();
+      const autoBotId = "BA" + new Date().getTime();
+      const autoBot = new AutoBotNode(autoBotId, exchange);
+      container.appendChild(autoBot.element);
+      allNodes.push(autoBot);
+      f1.connectToNode(autoBot);
+      autoBot.connectToNode(h1);
+      alert("Bot Aut iniciado com sucesso na corretora " + exchange);
+      autoBot.run();
+    }
+    function updateExchangeOptions(selectorId) {
+      const select = document.getElementById(selectorId);
+      if (select) {
+        select.innerHTML = "";
+        if (exchanges.length === 0) {
+          const option = document.createElement('option');
+          option.value = "";
+          option.textContent = "Nenhuma corretora cadastrada";
+          select.appendChild(option);
+          select.disabled = true;
+        } else {
+          select.disabled = false;
+          exchanges.forEach((ex) => {
+            const option = document.createElement('option');
+            option.value = ex.name;
+            option.textContent = ex.name + " (" + ex.mode + ")";
+            select.appendChild(option);
+          });
+        }
+      }
+    }
+    let currentTourStep = 0;
+    const tourStepData = [
+      {
+        title: "Bem-vindo ao Tour CortexTrader",
+        message: "Este sistema integra uma rede avançada de nós que operam bots de trading tanto em corretoras centralizadas quanto descentralizadas.",
+        details: "Cada nó representa um módulo específico e suas conexões mostram o fluxo de dados e comandos. Explore a interface para configurar e monitorar os bots de forma simples."
+      },
+      {
+        title: "Menu Inferior",
+        message: "No menu inferior você encontra os controles essenciais: 'Visualizar Logs', 'Tour Interface', 'Login', 'Cadastro', 'Salvar Visual', 'Gerar Relatórios', 'Criar Novo Bot', 'Feedback', 'Cadastrar Corretora', 'Mineração', 'Criar Bot DeFi' e 'Bot Aut'.",
+        details: "Use esses botões para acessar todas as funcionalidades do sistema."
+      },
+      {
+        title: "Criar Bot DeFi",
+        message: "Clique em 'Criar Bot DeFi' para abrir o formulário com as configurações para negociações descentralizadas.",
+        details: "No formulário, você define a blockchain, DEX, token, quantidade e parâmetros financeiros."
+      },
+      {
+        title: "Bot Aut",
+        message: "Clique em 'Bot Aut' para iniciar um bot automático com configurações pré-definidas.",
+        details: "Você poderá escolher a corretora e confirmar o início do bot aut. Durante a operação, o nó aparecerá com fundo e luzes verdes; em caso de falha, ficará vermelho."
+      },
+      {
+        title: "Configuração dos Nós",
+        message: "Dê um duplo clique em qualquer nó para ver uma ajuda simplificada.",
+        details: "A janela de ajuda apresenta uma descrição clara sobre a função do nó."
+      },
+      {
+        title: "Tour Concluído",
+        message: "Obrigado por participar do tour. Explore a interface com confiança e aproveite todos os recursos avançados.",
+        details: "Clique em 'Tour Interface' a qualquer momento para revisitar este guia."
+      }
+    ];
+    function showTourStep(index) {
+      const modalContainer = document.getElementById('modal-container');
+      while (modalContainer.firstChild) {
+        modalContainer.removeChild(modalContainer.firstChild);
+      }
+      const overlay = document.createElement('div');
+      overlay.classList.add('modal-overlay');
+      modalContainer.appendChild(overlay);
+      const tourModal = document.createElement('div');
+      tourModal.classList.add('tour-modal');
+      tourModal.innerHTML = `
+        <h2>${tourStepData[index].title}</h2>
+        <p>${tourStepData[index].message}</p>
+        <button onclick="alert('${tourStepData[index].details}')">Quer saber mais</button>
+        <button onclick="nextTourStep()">${index === tourStepData.length - 1 ? 'Concluir' : 'Próximo'}</button>
+      `;
+      modalContainer.appendChild(tourModal);
+    }
+    function nextTourStep() {
+      currentTourStep++;
+      if (currentTourStep < tourStepData.length) { 
+        showTourStep(currentTourStep); 
+      } else {
+        const modalContainer = document.getElementById('modal-container');
+        while (modalContainer.firstChild) { modalContainer.removeChild(modalContainer.firstChild); }
+        currentTourStep = 0;
+      }
+    }
+    function startInterfaceTour() {
+      currentTourStep = 0;
+      showTourStep(currentTourStep);
+    }
+
+    document.addEventListener('submit', function(e) {
+      if (e.target && e.target.id === "mining-form") {
+        e.preventDefault();
+        const consent = document.getElementById("mining-consent").checked;
+        if(consent) {
+          toggleMining(true);
+          alert("Mineração ativada. Obrigado por participar!");
+          clearModals();
+        } else {
+          alert("Você deve aceitar a política de privacidade para participar da mineração.");
+        }
+      }
+    });
+    function toggleMining(enabled) {
+      console.log("Mineração ativada:", enabled);
+    }
+  </script>
+</body>
+</html>

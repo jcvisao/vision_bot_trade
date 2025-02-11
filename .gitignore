@@ -1,18 +1,35 @@
-# Build and Release Folders
-bin-debug/
-bin-release/
-[Oo]bj/
-[Bb]in/
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
 
-# Other files and folders
-.settings/
+# Dependências globais
+*.tgz
 
-# Executables
-*.swf
-*.air
-*.ipa
-*.apk
+# Ambiente local (não versionar o .env)
+.env
+.env.local
+.env.*.local
 
-# Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
-# should NOT be excluded as they contain compiler settings and other important
-# information for Eclipse / Flash Builder.
+# Arquivos de build
+/dist
+/build
+/.nuxt
+/.next
+
+# Logs
+logs
+*.log
+*.log.*
+
+# Arquivos de IDE/Editor
+.vscode/
+.idea/
+
+# Diretórios de dependências de frontend
+bower_components/
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
